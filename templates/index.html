@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traductor - Lenguajes y Autómatas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans antialiased text-gray-800 flex flex-col">
+    <div class="max-w-5xl mx-auto px-4 py-10 w-full flex-grow">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-blue-600 mb-2">Traductor Web</h1>
+            <p class="text-gray-600 font-medium">Proyecto Práctico de Lenguajes y Autómatas</p>
+        </header>
+
+        <main class="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-6">
+                <!-- Origen -->
+                <div class="flex flex-col">
+                    <label for="source_lang" class="mb-2 font-semibold text-gray-700">Idioma de Origen</label>
+                    <select id="source_lang" class="border border-gray-300 rounded-lg p-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 transition-colors">
+                        <option value="auto">Detectar Automáticamente</option>
+                        <option value="es">Español</option>
+                        <option value="en">Inglés</option>
+                        <option value="fr">Francés</option>
+                    </select>
+                    <textarea id="source_text" rows="8" class="w-full border border-gray-300 rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-shadow" placeholder="Escribe el texto aquí..."></textarea>
+                </div>
+
+                <!-- Destino -->
+                <div class="flex flex-col">
+                    <label for="target_lang" class="mb-2 font-semibold text-gray-700">Idioma de Destino</label>
+                    <select id="target_lang" class="border border-gray-300 rounded-lg p-2.5 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 transition-colors">
+                        <option value="en">Inglés</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Francés</option>
+                    </select>
+                    <textarea id="target_text" rows="8" class="w-full border border-gray-300 rounded-lg p-4 bg-gray-50 focus:outline-none resize-none text-gray-700" placeholder="La traducción aparecerá aquí..." readonly></textarea>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center mt-8">
+                <button id="translate_btn" class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3 px-12 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl w-full md:w-auto focus:outline-none focus:ring-4 focus:ring-blue-300">
+                    Traducir
+                </button>
+                <div id="status_msg" class="mt-4 text-sm font-medium h-5 transition-colors"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sourceText = document.getElementById('source_text');
+            const targetText = document.getElementById('target_text');
+            const sourceLang = document.getElementById('source_lang');
+            const targetLang = document.getElementById('target_lang');
+            const translateBtn = document.getElementById('translate_btn');
+            const statusMsg = document.getElementById('status_msg');
+
+            translateBtn.addEventListener('click', async () => {
+                const text = sourceText.value.trim();
+                
+                if (!text) {
+                    alert('Por favor, ingresa el texto que deseas traducir.');
+                    sourceText.focus();
+                    return;
+                }
+
+                // Cambiar estado visual: Cargando
+                translateBtn.disabled = true;
+                translateBtn.classList.add('opacity-70', 'cursor-not-allowed');
+                statusMsg.textContent = 'Traduciendo...';
+                statusMsg.classList.remove('text-red-500', 'text-green-500');
+                statusMsg.classList.add('text-blue-500');
+                targetText.value = '';
+
+                try {
+                    const response = await fetch('/translate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            text: text,
+                            source_lang: sourceLang.value,
+                            target_lang: targetLang.value
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error al procesar la traducción en el servidor');
+                    }
+
+                    targetText.value = data.translated_text;
+                    statusMsg.textContent = 'Traducción completada.';
+                    statusMsg.classList.remove('text-blue-500');
+                    statusMsg.classList.add('text-green-500');
+                    
+                    // Limpiar el mensaje de éxito después de 3 segundos
+                    setTimeout(() => {
+                        if (statusMsg.textContent === 'Traducción completada.') {
+                            statusMsg.textContent = '';
+                        }
+                    }, 3000);
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    statusMsg.textContent = 'Ocurrió un error.';
+                    statusMsg.classList.remove('text-blue-500');
+                    statusMsg.classList.add('text-red-500');
+                    alert('Error: ' + error.message);
+                } finally {
+                    // Restaurar botón
+                    translateBtn.disabled = false;
+                    translateBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
