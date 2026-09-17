@@ -26,13 +26,16 @@ def translate():
             translator = GoogleTranslator(source=source_lang, target=target_lang)
             translated_text = translator.translate(text)
         except Exception as e:
-            # Si Google falla (por límite de peticiones u otro error), usar MyMemoryTranslator como respaldo
+            # Si Google falla, usar MyMemoryTranslator como respaldo
             print(f"GoogleTranslator falló ({e}), usando MyMemoryTranslator...")
-            # MyMemory no soporta 'auto', por lo que si está en 'auto' forzamos a intentar inferirlo o usar español por defecto
-            if source_lang == 'auto':
-                source_lang = 'es'
             
-            translator_fallback = MyMemoryTranslator(source=source_lang, target=target_lang)
+            # MyMemoryTranslator usa códigos diferentes para español, inglés y francés
+            lang_map = {'es': 'es-ES', 'en': 'en-GB', 'fr': 'fr-FR'}
+            
+            my_source = lang_map.get(source_lang, 'es-ES') if source_lang != 'auto' else 'es-ES'
+            my_target = lang_map.get(target_lang, 'en-GB')
+            
+            translator_fallback = MyMemoryTranslator(source=my_source, target=my_target)
             translated_text = translator_fallback.translate(text)
 
         return jsonify({'translated_text': translated_text})
