@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator, MyMemoryTranslator
 
 app = Flask(__name__)
 
@@ -21,9 +21,20 @@ def translate():
         return jsonify({'error': 'El texto a traducir no puede estar vacío'}), 400
 
     try:
-        # deep-translator usa códigos de idioma estándar (ej: 'es', 'en', 'fr')
-        translator = GoogleTranslator(source=source_lang, target=target_lang)
-        translated_text = translator.translate(text)
+        # Intentar primero con GoogleTranslator
+        try:
+            translator = GoogleTranslator(source=source_lang, target=target_lang)
+            translated_text = translator.translate(text)
+        except Exception as e:
+            # Si Google falla (por límite de peticiones u otro error), usar MyMemoryTranslator como respaldo
+            print(f"GoogleTranslator falló ({e}), usando MyMemoryTranslator...")
+            # MyMemory no soporta 'auto', por lo que si está en 'auto' forzamos a intentar inferirlo o usar español por defecto
+            if source_lang == 'auto':
+                source_lang = 'es'
+            
+            translator_fallback = MyMemoryTranslator(source=source_lang, target=target_lang)
+            translated_text = translator_fallback.translate(text)
+
         return jsonify({'translated_text': translated_text})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
